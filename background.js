@@ -117,15 +117,17 @@ async function isTabInEditingState(tab) {
 chrome.alarms.create('checkInactiveTabs', { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'checkInactiveTabs') {
+    console.log('----------------------------------------');
     console.log('开始检查不活跃标签页...');
     const tabs = await chrome.tabs.query({});
     const currentTime = Date.now();
     
-    console.log('当前打开的标签页数量:', tabs.length);
+    console.log(`当前打开的标签页数量: ${tabs.length}`);
     
     // 如果标签页数量未超过阈值，不进行关闭操作
     if (tabs.length <= MAX_TABS) {
       console.log(`当前标签数 (${tabs.length}) 未超过最大数量 (${MAX_TABS})，不进行关闭操作`);
+      console.log('----------------------------------------');
       return;
     }
     
@@ -135,24 +137,33 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       lastAccessed: tabLastAccessed[tab.id] || currentTime
     })).sort((a, b) => a.lastAccessed - b.lastAccessed);
     
-    // 计算需要关闭的标签数量
-    const tabsToClose = tabsWithTime.slice(0, tabs.length - MAX_TABS);
-    console.log(`需要关闭 ${tabsToClose.length} 个标签页`);
+    // 需要关闭的标签数量
+    const targetCloseCount = tabs.length - MAX_TABS;
+    console.log(`需要关闭 ${targetCloseCount} 个标签页以达到目标数量 ${MAX_TABS}`);
+    console.log('----------------------------------------');
     
-    // 关闭最早未使用的标签
-    for (const tab of tabsToClose) {
+    let closedCount = 0;
+    let checkedCount = 0;
+    
+    // 从最早未使用的标签开始检查，直到关闭足够数量的标签
+    while (closedCount < targetCloseCount && checkedCount < tabs.length) {
+      const tab = tabsWithTime[checkedCount];
       const inactiveTime = currentTime - tab.lastAccessed;
-      console.log(`标签页 ${tab.id} (${tab.title}) 未活动时间: ${Math.round(inactiveTime/1000/60)} 分钟`);
+      const inactiveMinutes = Math.round(inactiveTime/1000/60);
+      
+      console.log(`\n[检查标签 ${checkedCount + 1}/${tabs.length}]`);
+      console.log(`标题: ${tab.title}`);
+      console.log(`未活动时间: ${inactiveMinutes} 分钟`);
       
       if (inactiveTime > INACTIVE_TIMEOUT) {
         // 检查页面是否在编辑状态
         const isEditing = await isTabInEditingState(tab);
         if (isEditing) {
-          console.log(`标签页 ${tab.id} (${tab.title}) 正在编辑中，跳过关闭`);
+          console.log(`状态: 正在编辑中，跳过关闭`);
+          checkedCount++;
           continue;
         }
 
-        console.log(`准备关闭不活跃标签页: ${tab.title}`);
         // 保存关闭的标签页信息
         const closedTab = {
           title: tab.title,
@@ -165,10 +176,23 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         await chrome.storage.local.set({ closedTabs });
         
         // 关闭标签页
-        chrome.tabs.remove(tab.id);
-        console.log(`已关闭标签页: ${tab.title}`);
+        await chrome.tabs.remove(tab.id);
+        console.log(`状态: 已关闭 (${++closedCount}/${targetCloseCount})`);
+      } else {
+        console.log(`状态: 活动时间未超过阈值，保留`);
       }
+      checkedCount++;
     }
+    
+    console.log('\n----------------------------------------');
+    // 如果因为编辑状态而无法达到目标数量，记录日志
+    if (closedCount < targetCloseCount) {
+      console.log(`结果: 由于编辑状态的限制，只关闭了 ${closedCount} 个标签页，` +
+                 `还有 ${targetCloseCount - closedCount} 个无法关闭`);
+    } else {
+      console.log(`结果: 成功关闭了 ${closedCount} 个标签页，达到了目标数量`);
+    }
+    console.log('----------------------------------------');
   }
 });
 
