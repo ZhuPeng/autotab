@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>已关闭的标签页</title>
+  <style>
+    body {
+      width: 400px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    .tab-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .tab-item:hover {
+      background-color: #f5f5f5;
+    }
+    .title-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .tab-title {
+      font-weight: bold;
+      flex-grow: 1;
+      margin-right: 10px;
+    }
+    .tab-count {
+      color: #fff;
+      background-color: #4285f4;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .tab-url {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    .tab-time {
+      color: #999;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <h2>已关闭的标签页</h2>
+  <div id="tabList"></div>
+  <script src="popup.js"></script>
+</body>
+</html> 
