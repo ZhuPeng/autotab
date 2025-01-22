@@ -9,6 +9,32 @@
       padding: 10px;
       font-family: Arial, sans-serif;
     }
+    .search-container {
+      margin-bottom: 15px;
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+    .no-results {
+      color: #666;
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+    }
     .tab-item {
       padding: 8px;
       border-bottom: 1px solid #eee;
@@ -50,6 +76,13 @@
 </head>
 <body>
   <h2>已关闭的标签页</h2>
+  <div class="search-container">
+    <input type="text" 
+           class="search-input" 
+           id="searchInput" 
+           placeholder="搜索标题或网址..."
+           autocomplete="off">
+  </div>
   <div id="tabList"></div>
   <script src="popup.js"></script>
 </body>
