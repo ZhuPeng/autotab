@@ -238,12 +238,17 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
     const targetCloseCount = tabs.length - MAX_TABS;
     console.log(`需要关闭: ${targetCloseCount} 个标签页`);
+    console.log('----------------------------------------');
     
     let closedCount = 0;
     
     // 首先关闭新标签页
     for (const tab of newTabs) {
       if (closedCount >= targetCloseCount) break;
+      
+      console.log(`[关闭标签 ${closedCount + 1}/${targetCloseCount}]`);
+      console.log(`标题: ${tab.title}`);
+      console.log(`原因: 新标签页优先关闭`);
       
       const closedTab = {
         title: tab.title,
@@ -257,6 +262,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       
       await chrome.tabs.remove(tab.id);
       closedCount++;
+      console.log('----------------------------------------');
     }
     
     // 如果还需要关闭更多标签，继续处理普通标签
@@ -264,13 +270,22 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     while (closedCount < targetCloseCount && checkedCount < normalTabs.length) {
       const tab = normalTabs[checkedCount];
       const inactiveTime = currentTime - tab.lastAccessed;
+      const inactiveMinutes = Math.round(inactiveTime/1000/60);
       
       if (inactiveTime > INACTIVE_TIMEOUT) {
         const isEditing = await isTabInEditingState(tab);
         if (isEditing) {
+          console.log(`跳过标签: ${tab.title}`);
+          console.log(`原因: 正在编辑中`);
+          console.log('----------------------------------------');
           checkedCount++;
           continue;
         }
+
+        console.log(`[关闭标签 ${closedCount + 1}/${targetCloseCount}]`);
+        console.log(`标题: ${tab.title}`);
+        console.log(`未活动时间: ${inactiveMinutes} 分钟`);
+        console.log(`原因: 超过 ${INACTIVE_TIMEOUT/1000/60} 分钟未使用`);
 
         const closedTab = {
           title: tab.title,
@@ -284,11 +299,15 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         
         await chrome.tabs.remove(tab.id);
         closedCount++;
+        console.log('----------------------------------------');
       }
       checkedCount++;
     }
     
     console.log(`已关闭: ${closedCount} 个标签页`);
+    if (closedCount < targetCloseCount) {
+      console.log(`注意: 还有 ${targetCloseCount - closedCount} 个标签页因为活跃或正在编辑而无法关闭`);
+    }
     console.log('----------------------------------------');
   }
 });
