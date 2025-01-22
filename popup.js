@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  // 清除徽章
+  chrome.action.setBadgeText({ text: '' });
+  
   const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
   const tabList = document.getElementById('tabList');
   const searchInput = document.getElementById('searchInput');

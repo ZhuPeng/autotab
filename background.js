@@ -1,7 +1,7 @@
 // 设置自动关闭的时间阈值（毫秒）
-const INACTIVE_TIMEOUT = 1 * 60 * 1000; // 1分钟便于测试
+const INACTIVE_TIMEOUT = 4 * 60 * 60 * 1000; 
 let MAX_TABS = 20; // 默认最大标签页数量
-const CheckPeriodInMinutes = 1;
+const CheckPeriodInMinutes = 60;
 
 // 存储标签页的最后访问时间
 let tabLastAccessed = {};
@@ -364,10 +364,4 @@ function updateBadge(count) {
   } else {
     chrome.action.setBadgeText({ text: '' });
   }
-}
-
-// 当用户点击插件图标时，清除提示
-chrome.action.onClicked.addListener(() => {
-  recentClosedCount = 0;
-  updateBadge(0);
-}); 
+} 
