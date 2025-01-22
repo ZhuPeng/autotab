@@ -1,15 +1,18 @@
 // 设置自动关闭的时间阈值（毫秒）
-const INACTIVE_TIMEOUT = 4 * 60 * 60 * 1000; // 1分钟便于测试
+const INACTIVE_TIMEOUT = 1 * 60 * 1000; // 1分钟便于测试
 let MAX_TABS = 20; // 默认最大标签页数量
-const CheckPeriodInMinutes = 60;
+const CheckPeriodInMinutes = 1;
 
 // 存储标签页的最后访问时间
 let tabLastAccessed = {};
 
+// 添加新的变量来跟踪最近关闭的标签数
+let recentClosedCount = 0;
+
 // 加载用户设置
 async function loadSettings() {
   const result = await chrome.storage.sync.get({
-    maxTabs: 50 // 默认值
+    maxTabs: 20 // 默认值
   });
   MAX_TABS = result.maxTabs;
   console.log('已加载设置: 最大标签页数量 =', MAX_TABS);
@@ -262,6 +265,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       
       await chrome.tabs.remove(tab.id);
       closedCount++;
+      // 更新最近关闭计数和徽章
+      recentClosedCount++;
+      updateBadge(recentClosedCount);
       console.log('----------------------------------------');
     }
     
@@ -299,6 +305,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         
         await chrome.tabs.remove(tab.id);
         closedCount++;
+        // 更新最近关闭计数和徽章
+        recentClosedCount++;
+        updateBadge(recentClosedCount);
         console.log('----------------------------------------');
       }
       checkedCount++;
@@ -332,6 +341,8 @@ chrome.runtime.onStartup.addListener(async () => {
   const data = await chrome.storage.local.get('tabLastAccessed');
   tabLastAccessed = data.tabLastAccessed || {};
   await initializeExistingTabs();
+  recentClosedCount = 0;
+  updateBadge(0);
 });
 
 // 插件安装或更新时也初始化标签页
@@ -339,4 +350,24 @@ chrome.runtime.onInstalled.addListener(async () => {
   console.log('插件安装或更新...');
   await loadSettings();
   await initializeExistingTabs();
+  recentClosedCount = 0;
+  updateBadge(0);
+});
+
+// 更新图标上的提示标记
+function updateBadge(count) {
+  if (count > 0) {
+    // 设置红色背景
+    chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
+    // 设置显示的数字
+    chrome.action.setBadgeText({ text: count.toString() });
+  } else {
+    chrome.action.setBadgeText({ text: '' });
+  }
+}
+
+// 当用户点击插件图标时，清除提示
+chrome.action.onClicked.addListener(() => {
+  recentClosedCount = 0;
+  updateBadge(0);
 }); 
