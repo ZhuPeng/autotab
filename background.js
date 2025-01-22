@@ -1,9 +1,18 @@
 // 设置自动关闭的时间阈值（毫秒）
-const INACTIVE_TIMEOUT = 60 * 60 * 1000; // 1分钟便于测试
-const MAX_TABS = 95; // 最大标签页数量
+const INACTIVE_TIMEOUT = 1 * 60 * 1000; // 1分钟便于测试
+let MAX_TABS = 50; // 默认最大标签页数量
 
 // 存储标签页的最后访问时间
 let tabLastAccessed = {};
+
+// 加载用户设置
+async function loadSettings() {
+  const result = await chrome.storage.sync.get({
+    maxTabs: 50 // 默认值
+  });
+  MAX_TABS = result.maxTabs;
+  console.log('已加载设置: 最大标签页数量 =', MAX_TABS);
+}
 
 // 初始化已打开标签页的访问时间
 async function initializeExistingTabs() {
@@ -168,9 +177,18 @@ async function saveTabTimes() {
   await chrome.storage.local.set({ tabLastAccessed });
 }
 
+// 监听设置变更
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && changes.maxTabs) {
+    MAX_TABS = changes.maxTabs.newValue;
+    console.log('设置已更新: 最大标签页数量 =', MAX_TABS);
+  }
+});
+
 // 初始化时加载保存的数据并处理已存在的标签页
 chrome.runtime.onStartup.addListener(async () => {
   console.log('插件启动...');
+  await loadSettings();
   const data = await chrome.storage.local.get('tabLastAccessed');
   tabLastAccessed = data.tabLastAccessed || {};
   await initializeExistingTabs();
@@ -179,5 +197,6 @@ chrome.runtime.onStartup.addListener(async () => {
 // 插件安装或更新时也初始化标签页
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('插件安装或更新...');
+  await loadSettings();
   await initializeExistingTabs();
 }); 
