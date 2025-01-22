@@ -1,7 +1,7 @@
 // 设置自动关闭的时间阈值（毫秒）
-const INACTIVE_TIMEOUT = 1 * 60 * 1000; // 1分钟便于测试
-let MAX_TABS = 30; // 默认最大标签页数量
-const CheckPeriodInMinutes = 1;
+const INACTIVE_TIMEOUT = 4 * 60 * 60 * 1000; // 1分钟便于测试
+let MAX_TABS = 20; // 默认最大标签页数量
+const CheckPeriodInMinutes = 60;
 
 // 存储标签页的最后访问时间
 let tabLastAccessed = {};
