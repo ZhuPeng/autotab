@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         url: tab.url,
         count: 1,
         lastClosed: tab.closedAt,
-        closedTimes: [tab.closedAt]
+        closedTimes: [tab.closedAt],
+        isRead: tab.isRead
       };
     } else {
       acc[tab.url].count++;
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (tab.closedAt > acc[tab.url].lastClosed) {
         acc[tab.url].lastClosed = tab.closedAt;
         acc[tab.url].title = tab.title;
+        acc[tab.url].isRead = tab.isRead;
       }
     }
     return acc;
@@ -45,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     tabs.forEach(tab => {
       const tabElement = document.createElement('div');
-      tabElement.className = 'tab-item';
+      tabElement.className = `tab-item${!tab.isRead ? ' unread' : ''}`;
       
       const titleContainer = document.createElement('div');
       titleContainer.className = 'title-container';
@@ -73,7 +75,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       tabElement.appendChild(url);
       tabElement.appendChild(time);
       
-      tabElement.addEventListener('click', () => {
+      tabElement.addEventListener('click', async () => {
+        const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
+        const updatedTabs = closedTabs.map(t => {
+          if (t.url === tab.url && !t.isRead) {
+            return { ...t, isRead: true };
+          }
+          return t;
+        });
+        await chrome.storage.local.set({ closedTabs: updatedTabs });
+        
+        tabElement.classList.remove('unread');
+        tab.isRead = true;
+        
         chrome.tabs.create({ url: tab.url });
       });
       

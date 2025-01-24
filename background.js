@@ -292,7 +292,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       const closedTab = {
         title: tab.title,
         url: tab.url,
-        closedAt: currentTime
+        closedAt: currentTime,
+        isRead: false
       };
       
       const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
@@ -334,7 +335,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         const closedTab = {
           title: tab.title,
           url: tab.url,
-          closedAt: currentTime
+          closedAt: currentTime,
+          isRead: false
         };
         
         const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
