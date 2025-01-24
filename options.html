@@ -49,7 +49,13 @@
   <div class="setting-item">
     <label for="maxTabs">最大标签页数量:</label>
     <input type="number" id="maxTabs" min="1" max="200">
-    <div class="description">当打开的标签页超过此数量时，将自动关闭最早未使用的标签页（默认值：50）</div>
+    <div class="description">当打开的标签页超过此数量时，将自动关闭最早未使用的不活跃标签页（默认值：20）</div>
+  </div>
+
+  <div class="setting-item">
+    <label for="inactiveTimeout">标签页超时时长（小时）:</label>
+    <input type="number" id="inactiveTimeout" min="1" max="24" step="0.5">
+    <div class="description">超过此时长未访问的标签页将被视为不活跃（默认值：4小时）</div>
   </div>
 
   <button id="save" class="save-button">保存设置</button>

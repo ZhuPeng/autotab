@@ -1,5 +1,5 @@
 // 设置自动关闭的时间阈值（毫秒）
-const INACTIVE_TIMEOUT = 4 * 60 * 60 * 1000; 
+let INACTIVE_TIMEOUT = 4 * 60 * 60 * 1000; 
 let MAX_TABS = 20; // 默认最大标签页数量
 const CheckPeriodInMinutes = 60;
 
@@ -12,12 +12,14 @@ let recentClosedCount = 0;
 // 加载用户设置
 async function loadSettings() {
   const result = await chrome.storage.sync.get({
-    maxTabs: 20 // 默认值
+    maxTabs: 20, // 默认值
+    inactiveTimeout: 4 // 默认值（小时）
   });
   MAX_TABS = result.maxTabs;
+  INACTIVE_TIMEOUT = result.inactiveTimeout * 60 * 60 * 1000;
   console.log('========== 加载设置 ==========');
   console.log('最大标签页数量:', MAX_TABS);
-  console.log('自动关闭超时时间:', INACTIVE_TIMEOUT/1000/60, '分钟');
+  console.log('自动关闭超时时间:', result.inactiveTimeout, '小时');
   console.log('检查周期:', CheckPeriodInMinutes, '分钟');
   console.log('==============================');
 }
@@ -371,11 +373,15 @@ async function saveTabTimes() {
 
 // 监听设置变更
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.maxTabs) {
-    MAX_TABS = changes.maxTabs.newValue;
-    console.log('\n========== 设置已更新 ==========');
-    console.log('最大标签页数量:', MAX_TABS);
-    console.log('==============================');
+  if (namespace === 'sync') {
+    if (changes.maxTabs) {
+      MAX_TABS = changes.maxTabs.newValue;
+      console.log('设置已更新: 最大标签页数量 =', MAX_TABS);
+    }
+    if (changes.inactiveTimeout) {
+      INACTIVE_TIMEOUT = changes.inactiveTimeout.newValue * 60 * 60 * 1000;
+      console.log('设置已更新: 超时时长 =', changes.inactiveTimeout.newValue, '小时');
+    }
   }
 });
 
