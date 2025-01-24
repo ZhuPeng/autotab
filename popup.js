@@ -6,8 +6,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabList = document.getElementById('tabList');
   const searchInput = document.getElementById('searchInput');
   
-  // 按URL对标签页进行分组统计
-  const tabStats = closedTabs.reduce((acc, tab) => {
+  // 将所有标签页标记为已读（仅在存储中）
+  const updatedTabs = closedTabs.map(tab => ({
+    ...tab,
+    isRead: true
+  }));
+  await chrome.storage.local.set({ closedTabs: updatedTabs });
+  
+  // 按URL对标签页进行分组统计，但保持原始的未读状态用于显示
+  const tabStats = closedTabs.reduce((acc, tab) => {  // 使用原始的 closedTabs
     if (!acc[tab.url]) {
       acc[tab.url] = {
         title: tab.title,
@@ -15,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         count: 1,
         lastClosed: tab.closedAt,
         closedTimes: [tab.closedAt],
-        isRead: tab.isRead
+        isRead: tab.isRead  // 保持原始的未读状态
       };
     } else {
       acc[tab.url].count++;
@@ -23,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (tab.closedAt > acc[tab.url].lastClosed) {
         acc[tab.url].lastClosed = tab.closedAt;
         acc[tab.url].title = tab.title;
-        acc[tab.url].isRead = tab.isRead;
+        acc[tab.url].isRead = tab.isRead;  // 保持原始的未读状态
       }
     }
     return acc;
