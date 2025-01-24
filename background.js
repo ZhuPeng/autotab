@@ -15,19 +15,25 @@ async function loadSettings() {
     maxTabs: 20 // 默认值
   });
   MAX_TABS = result.maxTabs;
-  console.log('已加载设置: 最大标签页数量 =', MAX_TABS);
+  console.log('========== 加载设置 ==========');
+  console.log('最大标签页数量:', MAX_TABS);
+  console.log('自动关闭超时时间:', INACTIVE_TIMEOUT/1000/60, '分钟');
+  console.log('检查周期:', CheckPeriodInMinutes, '分钟');
+  console.log('==============================');
 }
 
 // 初始化已打开标签页的访问时间
 async function initializeExistingTabs() {
+  console.log('========== 初始化标签页 ==========');
   const tabs = await chrome.tabs.query({});
   const currentTime = Date.now();
   
-  // 获取当前活动的标签页
   const activeTab = await chrome.tabs.query({ active: true, currentWindow: true });
   const activeTabId = activeTab[0]?.id;
   
-  // 检查是否是新标签页的函数
+  console.log('当前打开的标签页数量:', tabs.length);
+  console.log('当前活动的标签页ID:', activeTabId);
+  
   const isNewTab = (tab) => {
     return tab.url === 'chrome://newtab/' || 
            tab.url === 'about:blank' ||
@@ -35,15 +41,24 @@ async function initializeExistingTabs() {
            tab.title === '新标签页';
   };
   
+  let newTabCount = 0;
   tabs.forEach(tab => {
     if (isNewTab(tab)) {
       tabLastAccessed[tab.id] = 0;
+      newTabCount++;
+      console.log(`新标签页: [${tab.id}] ${tab.title}`);
     } else if (tab.id === activeTabId) {
       tabLastAccessed[tab.id] = currentTime;
+      console.log(`当前活动标签页: [${tab.id}] ${tab.title}`);
     } else {
       tabLastAccessed[tab.id] = currentTime - (INACTIVE_TIMEOUT / 2);
+      console.log(`普通标签页: [${tab.id}] ${tab.title}`);
     }
   });
+  
+  console.log('新标签页数量:', newTabCount);
+  console.log('普通标签页数量:', tabs.length - newTabCount);
+  console.log('==============================');
   
   await saveTabTimes();
 }
@@ -90,9 +105,12 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // 检查标签页是否在编辑状态
 async function isTabInEditingState(tab) {
   try {
-    // 首先检查标题中是否包含编辑相关的关键词
+    console.log(`\n检查编辑状态: [${tab.id}] ${tab.title}`);
+    
+    // 检查标题关键词
     const editKeywords = ['编辑', 'edit', '撰写', 'compose', '新建', 'new', '回复', 'reply'];
     if (editKeywords.some(keyword => tab.title.toLowerCase().includes(keyword.toLowerCase()))) {
+      console.log(`检测到编辑关键词: ${tab.title}`);
       return true;
     }
 
@@ -202,9 +220,17 @@ async function isTabInEditingState(tab) {
       }
     });
 
-    return results.some(result => result.result === true);
+    const isEditing = results.some(result => result.result === true);
+    if (isEditing) {
+      const reason = results.find(r => r.result === true)?.reason;
+      console.log(`编辑状态检测结果: 是 (${reason})`);
+    } else {
+      console.log('编辑状态检测结果: 否');
+    }
+    return isEditing;
 
   } catch (error) {
+    console.log(`编辑状态检测失败:`, error);
     return false;
   }
 }
@@ -213,14 +239,16 @@ async function isTabInEditingState(tab) {
 chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CheckPeriodInMinutes });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'checkInactiveTabs') {
-    console.log('----------------------------------------');
+    console.log('\n=============== 开始检查标签页 ===============');
+    console.log('检查时间:', new Date().toLocaleString());
     const tabs = await chrome.tabs.query({});
     const currentTime = Date.now();
     
     console.log(`当前标签数: ${tabs.length}/${MAX_TABS}`);
     
     if (tabs.length <= MAX_TABS) {
-      console.log('----------------------------------------');
+      console.log('标签数未超过限制，无需关闭');
+      console.log('============================================\n');
       return;
     }
 
@@ -239,19 +267,27 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       }))
       .sort((a, b) => a.lastAccessed - b.lastAccessed);
 
+    console.log('\n标签页分类统计:');
+    console.log('- 新标签页数量:', newTabs.length);
+    console.log('- 普通标签页数量:', normalTabs.length);
+    
     const targetCloseCount = tabs.length - MAX_TABS;
-    console.log(`需要关闭: ${targetCloseCount} 个标签页`);
-    console.log('----------------------------------------');
+    console.log(`\n需要关闭: ${targetCloseCount} 个标签页`);
     
     let closedCount = 0;
     
     // 首先关闭新标签页
+    if (newTabs.length > 0) {
+      console.log('\n========== 处理新标签页 ==========');
+    }
+    
     for (const tab of newTabs) {
       if (closedCount >= targetCloseCount) break;
       
-      console.log(`[关闭标签 ${closedCount + 1}/${targetCloseCount}]`);
+      console.log(`\n[关闭新标签页 ${closedCount + 1}/${targetCloseCount}]`);
+      console.log(`ID: ${tab.id}`);
       console.log(`标题: ${tab.title}`);
-      console.log(`原因: 新标签页优先关闭`);
+      console.log(`URL: ${tab.url}`);
       
       const closedTab = {
         title: tab.title,
@@ -265,34 +301,36 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       
       await chrome.tabs.remove(tab.id);
       closedCount++;
-      // 更新最近关闭计数和徽章
       recentClosedCount++;
       updateBadge(recentClosedCount);
-      console.log('----------------------------------------');
     }
     
-    // 如果还需要关闭更多标签，继续处理普通标签
+    // 处理普通标签页
+    if (closedCount < targetCloseCount) {
+      console.log('\n========== 处理普通标签页 ==========');
+    }
+    
     let checkedCount = 0;
     while (closedCount < targetCloseCount && checkedCount < normalTabs.length) {
       const tab = normalTabs[checkedCount];
       const inactiveTime = currentTime - tab.lastAccessed;
       const inactiveMinutes = Math.round(inactiveTime/1000/60);
       
+      console.log(`\n[检查标签页 ${checkedCount + 1}/${normalTabs.length}]`);
+      console.log(`ID: ${tab.id}`);
+      console.log(`标题: ${tab.title}`);
+      console.log(`URL: ${tab.url}`);
+      console.log(`未活动时间: ${inactiveMinutes} 分钟`);
+      
       if (inactiveTime > INACTIVE_TIMEOUT) {
         const isEditing = await isTabInEditingState(tab);
         if (isEditing) {
-          console.log(`跳过标签: ${tab.title}`);
-          console.log(`原因: 正在编辑中`);
-          console.log('----------------------------------------');
+          console.log(`结果: 跳过（正在编辑）`);
           checkedCount++;
           continue;
         }
 
-        console.log(`[关闭标签 ${closedCount + 1}/${targetCloseCount}]`);
-        console.log(`标题: ${tab.title}`);
-        console.log(`未活动时间: ${inactiveMinutes} 分钟`);
-        console.log(`原因: 超过 ${INACTIVE_TIMEOUT/1000/60} 分钟未使用`);
-
+        console.log(`结果: 关闭（超时未使用）`);
         const closedTab = {
           title: tab.title,
           url: tab.url,
@@ -305,19 +343,22 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         
         await chrome.tabs.remove(tab.id);
         closedCount++;
-        // 更新最近关闭计数和徽章
         recentClosedCount++;
         updateBadge(recentClosedCount);
-        console.log('----------------------------------------');
+      } else {
+        console.log(`结果: 保留（活跃中）`);
       }
       checkedCount++;
     }
     
+    console.log('\n========== 检查结果 ==========');
     console.log(`已关闭: ${closedCount} 个标签页`);
     if (closedCount < targetCloseCount) {
-      console.log(`注意: 还有 ${targetCloseCount - closedCount} 个标签页因为活跃或正在编辑而无法关闭`);
+      console.log(`未完成目标: 还有 ${targetCloseCount - closedCount} 个标签页因为活跃或正在编辑而无法关闭`);
+    } else {
+      console.log('已达到目标关闭数量');
     }
-    console.log('----------------------------------------');
+    console.log('============================================\n');
   }
 });
 
@@ -330,7 +371,9 @@ async function saveTabTimes() {
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'sync' && changes.maxTabs) {
     MAX_TABS = changes.maxTabs.newValue;
-    console.log('设置已更新: 最大标签页数量 =', MAX_TABS);
+    console.log('\n========== 设置已更新 ==========');
+    console.log('最大标签页数量:', MAX_TABS);
+    console.log('==============================');
   }
 });
 
