@@ -58,6 +58,12 @@
     <div class="description">超过此时长未访问的标签页将被视为不活跃（默认值：4小时）</div>
   </div>
 
+  <div class="setting-item">
+    <label for="checkPeriod">检查周期（分钟）:</label>
+    <input type="number" id="checkPeriod" min="1" max="1440" step="1">
+    <div class="description">多久检查一次标签页状态（默认值：60分钟）</div>
+  </div>
+
   <button id="save" class="save-button">保存设置</button>
   <div id="status" class="status">设置已保存</div>
 

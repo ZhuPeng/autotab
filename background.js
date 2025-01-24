@@ -1,7 +1,7 @@
 // 设置自动关闭的时间阈值（毫秒）
 let INACTIVE_TIMEOUT = 4 * 60 * 60 * 1000; 
 let MAX_TABS = 20; // 默认最大标签页数量
-const CheckPeriodInMinutes = 60;
+let CHECK_PERIOD = 60; // 默认检查周期（分钟）
 
 // 存储标签页的最后访问时间
 let tabLastAccessed = {};
@@ -12,15 +12,22 @@ let recentClosedCount = 0;
 // 加载用户设置
 async function loadSettings() {
   const result = await chrome.storage.sync.get({
-    maxTabs: 20, // 默认值
-    inactiveTimeout: 4 // 默认值（小时）
+    maxTabs: 20,
+    inactiveTimeout: 4,
+    checkPeriod: 60
   });
   MAX_TABS = result.maxTabs;
   INACTIVE_TIMEOUT = result.inactiveTimeout * 60 * 60 * 1000;
+  CHECK_PERIOD = result.checkPeriod;
+  
+  // 更新检查周期
+  chrome.alarms.clear('checkInactiveTabs');
+  chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CHECK_PERIOD });
+  
   console.log('========== 加载设置 ==========');
   console.log('最大标签页数量:', MAX_TABS);
   console.log('自动关闭超时时间:', result.inactiveTimeout, '小时');
-  console.log('检查周期:', CheckPeriodInMinutes, '分钟');
+  console.log('检查周期:', CHECK_PERIOD, '分钟');
   console.log('==============================');
 }
 
@@ -238,7 +245,7 @@ async function isTabInEditingState(tab) {
 }
 
 // 定期检查并关闭不活跃的标签页
-chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CheckPeriodInMinutes });
+chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CHECK_PERIOD });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'checkInactiveTabs') {
     console.log('\n=============== 开始检查标签页 ===============');
@@ -381,6 +388,13 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     if (changes.inactiveTimeout) {
       INACTIVE_TIMEOUT = changes.inactiveTimeout.newValue * 60 * 60 * 1000;
       console.log('设置已更新: 超时时长 =', changes.inactiveTimeout.newValue, '小时');
+    }
+    if (changes.checkPeriod) {
+      CHECK_PERIOD = changes.checkPeriod.newValue;
+      console.log('设置已更新: 检查周期 =', CHECK_PERIOD, '分钟');
+      // 更新检查周期
+      chrome.alarms.clear('checkInactiveTabs');
+      chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CHECK_PERIOD });
     }
   }
 });
