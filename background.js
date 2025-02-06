@@ -51,6 +51,10 @@ async function initializeExistingTabs() {
   };
   
   let newTabCount = 0;
+  // 获取已保存的访问时间
+  const savedData = await chrome.storage.local.get('tabLastAccessed');
+  const savedTimes = savedData.tabLastAccessed || {};
+  
   tabs.forEach(tab => {
     if (isNewTab(tab)) {
       tabLastAccessed[tab.id] = 0;
@@ -60,8 +64,10 @@ async function initializeExistingTabs() {
       tabLastAccessed[tab.id] = currentTime;
       console.log(`当前活动标签页: [${tab.id}] ${tab.title}`);
     } else {
-      tabLastAccessed[tab.id] = currentTime - (INACTIVE_TIMEOUT / 2);
-      console.log(`普通标签页: [${tab.id}] ${tab.title}`);
+      // 使用已保存的访问时间，如果没有则设置为当前时间减去超时时间的一半
+      tabLastAccessed[tab.id] = savedTimes[tab.id] || (currentTime - (INACTIVE_TIMEOUT / 2));
+      console.log(`普通标签页: [${tab.id}] ${tab.title}, 最后访问时间:`, 
+        new Date(tabLastAccessed[tab.id]).toLocaleString());
     }
   });
   
