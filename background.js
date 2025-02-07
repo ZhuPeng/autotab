@@ -435,4 +435,10 @@ function updateBadge(count) {
   } else {
     chrome.action.setBadgeText({ text: '' });
   }
-} 
+}
+
+// 监听插件图标点击事件
+chrome.action.onClicked.addListener(() => {
+  recentClosedCount = 0;
+  updateBadge(0);
+}); 
