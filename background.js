@@ -327,6 +327,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
     
     let checkedCount = 0;
+    let hasClosedTabs = false;  // 新增：标记是否有标签页被关闭
+    
     while (closedCount < targetCloseCount && checkedCount < normalTabs.length) {
       const tab = normalTabs[checkedCount];
       const inactiveTime = currentTime - tab.lastAccessed;
@@ -359,6 +361,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         await chrome.storage.local.set({ closedTabs });
         
         await chrome.tabs.remove(tab.id);
+        hasClosedTabs = true;  // 新增：标记已关闭标签页
         closedCount++;
         recentClosedCount++;
         updateBadge(recentClosedCount);
@@ -366,6 +369,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         console.log(`结果: 保留（活跃中）`);
       }
       checkedCount++;
+    }
+    
+    // 新增：如果有标签页被关闭，尝试触发垃圾回收
+    if (hasClosedTabs && globalThis.gc) {
+      console.log('\n尝试触发垃圾回收...');
+      globalThis.gc();
     }
     
     console.log('\n========== 检查结果 ==========');
@@ -441,4 +450,34 @@ function updateBadge(count) {
 chrome.action.onClicked.addListener(() => {
   recentClosedCount = 0;
   updateBadge(0);
+});
+
+// 添加消息监听器处理恢复标签页的请求
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+  if (request.action === 'restoreRecentTabs') {
+    try {
+      const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
+      const unresolvedTabs = closedTabs.filter(tab => !tab.isRead);
+      
+      // 恢复未读的标签页
+      for (const tab of unresolvedTabs) {
+        await chrome.tabs.create({ url: tab.url, active: false });
+      }
+
+      // 更新所有标签页为已读状态
+      const updatedTabs = closedTabs.map(tab => ({ ...tab, isRead: true }));
+      await chrome.storage.local.set({ closedTabs: updatedTabs });
+
+      // 重置计数器和徽章
+      recentClosedCount = 0;
+      updateBadge(0);
+
+      // 发送成功响应
+      sendResponse({ success: true, restoredCount: unresolvedTabs.length });
+    } catch (error) {
+      console.error('恢复标签页失败:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+  }
+  return true; // 保持消息通道开放以支持异步响应
 }); 

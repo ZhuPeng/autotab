@@ -76,10 +76,25 @@
       color: #999;
       font-size: 11px;
     }
+    button#restoreTab {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button#restoreTab:hover {
+      background-color: #3367d6;
+    }
   </style>
 </head>
 <body>
   <h2>已关闭的标签页</h2>
+  <button id="restoreTab">恢复最近关闭的标签页</button>
   <div class="search-container">
     <input type="text" 
            class="search-input" 

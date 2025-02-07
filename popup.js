@@ -138,3 +138,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 聚焦搜索框
   searchInput.focus();
 }); 
+
+// 在弹出页面的 JavaScript 中
+document.getElementById('restoreButton').addEventListener('click', async () => {
+  const response = await chrome.runtime.sendMessage({ action: 'restoreRecentTabs' });
+  if (response.success) {
+    console.log(`已恢复 ${response.restoredCount} 个标签页`);
+  } else {
+    console.error('恢复失败:', response.error);
+  }
+});
+
+// 添加恢复最近关闭标签页的功能
+document.getElementById('restoreTab').addEventListener('click', async () => {
+  try {
+    // 恢复最近关闭的标签页
+    await chrome.tabs.restore();
+  } catch (error) {
+    console.error('恢复标签页失败:', error);
+  }
+});
