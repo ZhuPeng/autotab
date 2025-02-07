@@ -6,15 +6,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabList = document.getElementById('tabList');
   const searchInput = document.getElementById('searchInput');
   
-  // 将所有标签页标记为已读（仅在存储中）
-  const updatedTabs = closedTabs.map(tab => ({
-    ...tab,
-    isRead: true
-  }));
-  await chrome.storage.local.set({ closedTabs: updatedTabs });
+  // 移除将所有标签页标记为已读的代码
+  // const updatedTabs = closedTabs.map(tab => ({
+  //   ...tab,
+  //   isRead: true
+  // }));
+  // await chrome.storage.local.set({ closedTabs: updatedTabs });
   
-  // 按URL对标签页进行分组统计，但保持原始的未读状态用于显示
-  const tabStats = closedTabs.reduce((acc, tab) => {  // 使用原始的 closedTabs
+  // 按URL对标签页进行分组统计
+  const tabStats = closedTabs.reduce((acc, tab) => {
     if (!acc[tab.url]) {
       acc[tab.url] = {
         title: tab.title,
@@ -138,16 +138,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 聚焦搜索框
   searchInput.focus();
 
-  // 初始化按钮事件监听
-  // 恢复最近关闭标签页的功能
-  document.getElementById('restoreTab').addEventListener('click', async () => {
-    try {
-      await chrome.tabs.restore();
-    } catch (error) {
-      console.error('恢复标签页失败:', error);
-    }
-  });
-
   // 关闭所有标签页的功能
   document.getElementById('closeAllTabs').addEventListener('click', async () => {
     try {
@@ -196,10 +186,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('关闭标签页失败:', error);
     }
   });
+
+  // 添加页面可见性变化事件监听器
+  document.addEventListener('visibilitychange', async () => {
+    if (document.hidden) {
+      // 当页面隐藏时（即弹出窗口关闭时）
+      const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
+      const updatedTabs = closedTabs.map(tab => ({
+        ...tab,
+        isRead: true
+      }));
+      await chrome.storage.local.set({ closedTabs: updatedTabs });
+    }
+}); 
 }); 
 
 // 在弹出页面的 JavaScript 中
-document.getElementById('restoreButton').addEventListener('click', async () => {
+document.getElementById('restoreTab').addEventListener('click', async () => {
+  console.log('restore all Tab');
   const response = await chrome.runtime.sendMessage({ action: 'restoreRecentTabs' });
   if (response.success) {
     console.log(`已恢复 ${response.restoredCount} 个标签页`);

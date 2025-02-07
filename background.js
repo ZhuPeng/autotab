@@ -455,6 +455,7 @@ chrome.action.onClicked.addListener(() => {
 // 添加消息监听器处理恢复标签页的请求
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.action === 'restoreRecentTabs') {
+    console.log('handle restoreRecentTabs');
     try {
       const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
       const unresolvedTabs = closedTabs.filter(tab => !tab.isRead);
@@ -467,10 +468,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       // 更新所有标签页为已读状态
       const updatedTabs = closedTabs.map(tab => ({ ...tab, isRead: true }));
       await chrome.storage.local.set({ closedTabs: updatedTabs });
-
-      // 重置计数器和徽章
-      recentClosedCount = 0;
-      updateBadge(0);
 
       // 发送成功响应
       sendResponse({ success: true, restoredCount: unresolvedTabs.length });
