@@ -137,6 +137,65 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 聚焦搜索框
   searchInput.focus();
+
+  // 初始化按钮事件监听
+  // 恢复最近关闭标签页的功能
+  document.getElementById('restoreTab').addEventListener('click', async () => {
+    try {
+      await chrome.tabs.restore();
+    } catch (error) {
+      console.error('恢复标签页失败:', error);
+    }
+  });
+
+  // 关闭所有标签页的功能
+  document.getElementById('closeAllTabs').addEventListener('click', async () => {
+    try {
+      // 获取当前窗口的所有标签页
+      const tabs = await chrome.tabs.query({ currentWindow: true });
+      
+      // 排除扩展的弹出窗口
+      const regularTabs = tabs.filter(tab => !tab.url.startsWith('chrome-extension://'));
+
+      // 获取当前的关闭历史
+      const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
+      const currentTime = Date.now();
+
+      // 准备新的关闭记录
+      const newClosedTabs = regularTabs.map(tab => ({
+        title: tab.title,
+        url: tab.url,
+        closedAt: currentTime,
+        isRead: false
+      }));
+
+      // 更新存储
+      await chrome.storage.local.set({
+        closedTabs: [...newClosedTabs, ...closedTabs]
+      });
+
+      // 关闭所有标签页（除了最后一个）
+      const tabIds = regularTabs.map(tab => tab.id);
+      tabIds.pop(); // 移除最后一个标签页的ID
+      if (tabIds.length > 0) {
+        await chrome.tabs.remove(tabIds);
+      }
+
+      // 在最后一个标签页上加载空白页
+      const lastTab = regularTabs[regularTabs.length - 1];
+      if (lastTab) {
+        await chrome.tabs.update(lastTab.id, { url: 'chrome://newtab' });
+      }
+
+      // 更新徽章显示未读数
+      chrome.action.setBadgeText({ text: String(newClosedTabs.length) });
+      chrome.action.setBadgeBackgroundColor({ color: '#4285f4' });
+
+      window.close(); // 关闭弹出窗口
+    } catch (error) {
+      console.error('关闭标签页失败:', error);
+    }
+  });
 }); 
 
 // 在弹出页面的 JavaScript 中
@@ -146,15 +205,5 @@ document.getElementById('restoreButton').addEventListener('click', async () => {
     console.log(`已恢复 ${response.restoredCount} 个标签页`);
   } else {
     console.error('恢复失败:', response.error);
-  }
-});
-
-// 添加恢复最近关闭标签页的功能
-document.getElementById('restoreTab').addEventListener('click', async () => {
-  try {
-    // 恢复最近关闭的标签页
-    await chrome.tabs.restore();
-  } catch (error) {
-    console.error('恢复标签页失败:', error);
   }
 });
