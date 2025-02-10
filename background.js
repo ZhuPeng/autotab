@@ -52,7 +52,9 @@ async function initializeExistingTabs() {
   
   let newTabCount = 0;
   // 获取已保存的访问时间
-  const savedTimes = await chrome.storage.local.get('tabLastAccessed');
+  const savedData = await chrome.storage.local.get('tabLastAccessed');
+  const savedTimes = savedData.tabLastAccessed || {};
+  console.log('lastest savedTimes:', savedTimes)
   
   tabs.forEach(tab => {
     if (isNewTab(tab)) {
