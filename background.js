@@ -417,8 +417,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 chrome.runtime.onStartup.addListener(async () => {
   console.log('插件启动...');
   await loadSettings();
-  const data = await chrome.storage.local.get('tabLastAccessed');
-  tabLastAccessed = data.tabLastAccessed || {};
   await initializeExistingTabs();
   recentClosedCount = 0;
   updateBadge(0);
