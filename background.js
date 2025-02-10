@@ -497,3 +497,5 @@ chrome.runtime.onSuspendCanceled.addListener(() => {
   console.log('扩展挂起已取消:', new Date().toLocaleString());
   ensureAlarmExists();
 });
+
+setInterval(ensureAlarmExists, 4 * 60 * 60 * 1000);
