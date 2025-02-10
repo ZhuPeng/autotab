@@ -478,3 +478,22 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   return true; // 保持消息通道开放以支持异步响应
 }); 
+
+async function ensureAlarmExists() {
+  const existingAlarm = await chrome.alarms.get('checkInactiveTabs');
+  if (!existingAlarm) {
+    console.log('checkInactiveTabs alarm 不存在，重新创建');
+    chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CHECK_PERIOD });
+  } else {
+    console.log('checkInactiveTabs alarm 存在，下次执行时间:', new Date(existingAlarm.scheduledTime).toLocaleString());
+  }
+}
+
+chrome.runtime.onSuspend.addListener(() => {
+  console.log('扩展即将被挂起:', new Date().toLocaleString());
+});
+
+chrome.runtime.onSuspendCanceled.addListener(() => {
+  console.log('扩展挂起已取消:', new Date().toLocaleString());
+  ensureAlarmExists();
+});
