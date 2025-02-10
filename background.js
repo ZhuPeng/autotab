@@ -55,7 +55,7 @@ async function initializeExistingTabs() {
   
   let newTabCount = 0;
   // 获取已保存的访问时间
-  const tabLastAccessed = await getTabLastAccessed();
+  let tabLastAccessed = await getTabLastAccessed();
   console.log('lastest savedTimes:', tabLastAccessed)
   
   tabs.forEach(tab => {
