@@ -3,11 +3,21 @@ let INACTIVE_TIMEOUT = 4 * 60 * 60 * 1000;
 let MAX_TABS = 20; // 默认最大标签页数量
 let CHECK_PERIOD = 60; // 默认检查周期（分钟）
 
-// 存储标签页的最后访问时间
-let tabLastAccessed = {};
-
 // 添加新的变量来跟踪最近关闭的标签数
 let recentClosedCount = 0;
+
+async function getTabLastAccessed() {
+  const savedData = await chrome.storage.local.get('tabLastAccessed');
+  const savedTimes = savedData.tabLastAccessed || {};
+  return savedTimes;
+}
+
+function isNewTab(tab) {
+  return tab.url === 'chrome://newtab/' || 
+         tab.url === 'about:blank' ||
+         tab.title === 'New Tab' ||
+         tab.title === '新标签页';
+}
 
 // 加载用户设置
 async function loadSettings() {
@@ -43,18 +53,10 @@ async function initializeExistingTabs() {
   console.log('当前打开的标签页数量:', tabs.length);
   console.log('当前活动的标签页ID:', activeTabId);
   
-  const isNewTab = (tab) => {
-    return tab.url === 'chrome://newtab/' || 
-           tab.url === 'about:blank' ||
-           tab.title === 'New Tab' ||
-           tab.title === '新标签页';
-  };
-  
   let newTabCount = 0;
   // 获取已保存的访问时间
-  const savedData = await chrome.storage.local.get('tabLastAccessed');
-  const savedTimes = savedData.tabLastAccessed || {};
-  console.log('lastest savedTimes:', savedTimes)
+  const tabLastAccessed = await getTabLastAccessed();
+  console.log('lastest savedTimes:', tabLastAccessed)
   
   tabs.forEach(tab => {
     if (isNewTab(tab)) {
@@ -66,7 +68,7 @@ async function initializeExistingTabs() {
       console.log(`当前活动标签页: [${tab.id}] ${tab.title}`);
     } else {
       // 使用已保存的访问时间，如果没有则设置为当前时间减去超时时间的一半
-      tabLastAccessed[tab.id] = savedTimes[tab.id] || (currentTime - (INACTIVE_TIMEOUT / 2));
+      tabLastAccessed[tab.id] = tabLastAccessed[tab.id] || (currentTime - (INACTIVE_TIMEOUT / 2));
       console.log(`普通标签页: [${tab.id}] ${tab.title}, 最后访问时间:`, 
         new Date(tabLastAccessed[tab.id]).toLocaleString());
     }
@@ -76,46 +78,37 @@ async function initializeExistingTabs() {
   console.log('普通标签页数量:', tabs.length - newTabCount);
   console.log('==============================');
   
-  await saveTabTimes();
+  await saveTabTimes(tabLastAccessed);
+}
+
+async function updateTabLastAccessed(tab) {
+  let tabLastAccessed = await getTabLastAccessed();
+  if (isNewTab(tab)) {
+    tabLastAccessed[tab.id] = 0;
+  } else {
+    tabLastAccessed[tab.id] = Date.now();
+  }
+  await saveTabTimes(tabLastAccessed);
 }
 
 // 监听标签页被激活的事件
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
-  const isNewTab = tab.url === 'chrome://newtab/' || 
-                   tab.url === 'about:blank' ||
-                   tab.title === 'New Tab' ||
-                   tab.title === '新标签页';
-                   
-  if (isNewTab) {
-    tabLastAccessed[activeInfo.tabId] = 0;
-  } else {
-    tabLastAccessed[activeInfo.tabId] = Date.now();
-  }
-  await saveTabTimes();
+  updateTabLastAccessed(tab);
 });
 
 // 监听标签页更新的事件
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {
-    const isNewTab = tab.url === 'chrome://newtab/' || 
-                    tab.url === 'about:blank' ||
-                    tab.title === 'New Tab' ||
-                    tab.title === '新标签页';
-                    
-    if (isNewTab) {
-      tabLastAccessed[tabId] = 0;
-    } else {
-      tabLastAccessed[tabId] = Date.now();
-    }
-    saveTabTimes();
+    updateTabLastAccessed(tab);
   }
 });
 
 // 监听标签页关闭的事件
 chrome.tabs.onRemoved.addListener((tabId) => {
+  let tabLastAccessed = getTabLastAccessed();
   delete tabLastAccessed[tabId];
-  saveTabTimes();
+  saveTabTimes(tabLastAccessed);
 });
 
 // 检查标签页是否在编辑状态
@@ -276,6 +269,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     };
     
     const newTabs = tabs.filter(isNewTab);
+    let tabLastAccessed = await getTabLastAccessed();
     const normalTabs = tabs.filter(tab => !isNewTab(tab))
       .map(tab => ({
         ...tab,
@@ -390,7 +384,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 });
 
 // 保存标签页访问时间
-async function saveTabTimes() {
+async function saveTabTimes(tabLastAccessed) {
   await chrome.storage.local.set({ tabLastAccessed });
 }
 
