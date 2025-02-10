@@ -1,39 +1,41 @@
+[中文版](README_cn.md)
+
 # Smart Tab Manager
 
-## 项目简介
+## Project Overview
 
-Smart Tab Manager 是一个 Chrome 扩展，旨在自动管理浏览器标签页。它可以监控用户的标签页使用情况，并在标签页长时间未使用时自动关闭，从而节约电脑内存和提高浏览器性能。该扩展提供了用户友好的设置界面，允许用户自定义最大标签页数量、标签页超时时长和检查周期。
+Smart Tab Manager is a Chrome extension designed to automatically manage browser tabs. It can monitor users' tab usage and automatically close tabs that have not been used for a long time, thereby saving computer memory and improving browser performance. The extension provides a user-friendly settings interface that allows users to customize the maximum number of tabs, tab timeout duration, and check interval.
 
-## 功能
+## Features
 
-- **自动关闭不活跃标签页**：根据用户设置的超时时长，自动关闭长时间未使用的标签页。
-- **标签页管理**：用户可以查看最近关闭的标签页，并选择恢复它们。
-- **自定义设置**：用户可以设置最大标签页数量、标签页超时时长（小时）和检查周期（分钟）。
-- **实时监控**：扩展会实时监控标签页的使用情况，并在标签页状态变化时更新。
+- **Automatically close inactive tabs**: Automatically close tabs that have not been used for a long time based on the timeout duration set by the user.
+- **Tab management**: Users can view recently closed tabs and choose to restore them.
+- **Custom settings**: Users can set the maximum number of tabs, tab timeout duration (in hours), and check interval (in minutes).
+- **Real-time monitoring**: The extension will monitor tab usage in real-time and update when the status of the tabs changes.
 
-## 安装
+## Installation
 
-推荐使用 Chrome 官方应用商店安装：[链接](https://chromewebstore.google.com/detail/smart-tab-manager/fbpngnjbngbojnaegepkmkalenbcedad?hl=zh-CN&utm_source=ext_sidebar)
+It is recommended to install from the Chrome Web Store: [Link](https://chromewebstore.google.com/detail/smart-tab-manager/fbpngnjbngbojnaegepkmkalenbcedad?hl=en&utm_source=ext_sidebar)
 
-如果无法访问 Chrome 官方应用商店，可以下载源码自行安装：
+If you cannot access the Chrome Web Store, you can download the source code for manual installation:
 
-1. 下载或克隆该项目到本地。
-2. 打开 Chrome 浏览器，输入 `chrome://extensions/` 进入扩展管理页面。
-3. 开启右上角的“开发者模式”。
-4. 点击“加载已解压的扩展程序”，选择下载的项目文件夹。
-5. 扩展将被添加到浏览器中。
+1. Download or clone the project to your local machine.
+2. Open Chrome browser and enter `chrome://extensions/` to access the extensions management page.
+3. Enable "Developer mode" in the upper right corner.
+4. Click "Load unpacked" and select the downloaded project folder.
+5. The extension will be added to the browser.
 
-## 使用
+## Usage
 
-1. 点击浏览器工具栏中的 Smart Tab Manager 图标，打开扩展界面。
-2. 在设置页面中，您可以自定义最大标签页数量、标签页超时时长和检查周期。
-3. 在已关闭的标签页页面，您可以查看最近关闭的标签页，并选择恢复它们。
-4. 扩展会根据您的设置自动管理标签页，您可以随时查看当前标签页的状态。
+1. Click the Smart Tab Manager icon in the browser toolbar to open the extension interface.
+2. In the settings page, you can customize the maximum number of tabs, tab timeout duration, and check interval.
+3. In the recently closed tabs page, you can view recently closed tabs and choose to restore them.
+4. The extension will automatically manage tabs based on your settings, and you can check the status of the current tabs at any time.
 
-## 贡献
+## Contribution
 
-欢迎任何形式的贡献！如果您发现了错误或有改进建议，请提交问题或拉取请求。
+Contributions of any form are welcome! If you find any errors or have suggestions for improvements, please submit issues or pull requests.
 
-## 许可证
+## License
 
-该项目采用 MIT 许可证。
+This project is licensed under the MIT License.
