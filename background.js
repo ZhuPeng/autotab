@@ -52,8 +52,7 @@ async function initializeExistingTabs() {
   
   let newTabCount = 0;
   // 获取已保存的访问时间
-  const savedData = await chrome.storage.local.get('tabLastAccessed');
-  const savedTimes = savedData.tabLastAccessed || {};
+  const savedTimes = await chrome.storage.local.get('tabLastAccessed');
   
   tabs.forEach(tab => {
     if (isNewTab(tab)) {
@@ -495,6 +494,7 @@ chrome.runtime.onSuspend.addListener(() => {
 
 chrome.runtime.onSuspendCanceled.addListener(() => {
   console.log('扩展挂起已取消:', new Date().toLocaleString());
+  initializeExistingTabs();
   ensureAlarmExists();
 });
 
