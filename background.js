@@ -122,6 +122,7 @@ async function updateTabLastAccessed(tab) {
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
   updateTabLastAccessed(tab);
+  ensureAlarmExists();
 });
 
 // 监听标签页更新的事件
