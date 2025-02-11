@@ -1,3 +1,5 @@
+chrome.runtime.connect();
+let clog = console.log
 document.addEventListener('DOMContentLoaded', async () => {
   // 清除徽章
   chrome.action.setBadgeText({ text: '' });
@@ -186,28 +188,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('关闭标签页失败:', error);
     }
   });
-
-  // 添加页面可见性变化事件监听器
-  document.addEventListener('visibilitychange', async () => {
-    if (document.hidden) {
-      // 当页面隐藏时（即弹出窗口关闭时）
-      const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
-      const updatedTabs = closedTabs.map(tab => ({
-        ...tab,
-        isRead: true
-      }));
-      await chrome.storage.local.set({ closedTabs: updatedTabs });
-    }
-}); 
 }); 
 
 // 在弹出页面的 JavaScript 中
 document.getElementById('restoreTab').addEventListener('click', async () => {
-  console.log('restore all Tab');
+  clog('restore all Tab');
   const response = await chrome.runtime.sendMessage({ action: 'restoreRecentTabs' });
   if (response.success) {
-    console.log(`已恢复 ${response.restoredCount} 个标签页`);
+    clog(`已恢复 ${response.restoredCount} 个标签页`);
   } else {
-    console.error('恢复失败:', response.error);
+    clog('恢复失败:', response.error);
   }
 });

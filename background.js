@@ -121,15 +121,15 @@ async function updateTabLastAccessed(tab) {
 // 监听标签页被激活的事件
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId);
-  updateTabLastAccessed(tab);
-  ensureAlarmExists();
+  await updateTabLastAccessed(tab);
+  await ensureAlarmExists();
 });
 
 // 监听标签页更新的事件
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {
     console.log(`========== 标签页更新 complete 事件 ========== [${tabId}] ${tab.title}`);
-    updateTabLastAccessed(tab);
+    await updateTabLastAccessed(tab);
   }
 });
 
@@ -282,7 +282,6 @@ async function isTabInEditingState(tab) {
 }
 
 // 定期检查并关闭不活跃的标签页
-chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CHECK_PERIOD });
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'checkInactiveTabs') {
     console.log('\n=============== 开始检查标签页 ===============');
@@ -486,8 +485,25 @@ chrome.action.onClicked.addListener(() => {
   updateBadge(0);
 });
 
+async function markAllTabsAsRead() {
+  const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
+  const updatedTabs = closedTabs.map(tab => ({
+    ...tab,
+    isRead: true
+  }));
+  await chrome.storage.local.set({ closedTabs: updatedTabs });
+  console.log('所有标签页已标记为已读');
+}
+
+chrome.runtime.onConnect.addListener(port => {
+  port.onDisconnect.addListener(()=>{
+    markAllTabsAsRead();
+  })
+})
+
 // 添加消息监听器处理恢复标签页的请求
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+  console.log('收到消息:', request);
   if (request.action === 'restoreRecentTabs') {
     console.log('handle restoreRecentTabs');
     try {
@@ -517,20 +533,18 @@ async function ensureAlarmExists() {
   const existingAlarm = await chrome.alarms.get('checkInactiveTabs');
   if (!existingAlarm) {
     console.log('checkInactiveTabs alarm 不存在，重新创建');
-    chrome.alarms.create('checkInactiveTabs', { periodInMinutes: CHECK_PERIOD });
+    await loadSettings();
   } else {
     console.log('checkInactiveTabs alarm 存在，下次执行时间:', new Date(existingAlarm.scheduledTime).toLocaleString());
   }
 }
 
-chrome.runtime.onSuspend.addListener(() => {
+chrome.runtime.onSuspend.addListener(async () => {
   console.log('扩展即将被挂起:', new Date().toLocaleString());
 });
 
-chrome.runtime.onSuspendCanceled.addListener(() => {
+chrome.runtime.onSuspendCanceled.addListener(async () => {
   console.log('扩展挂起已取消:', new Date().toLocaleString());
-  initializeExistingTabs();
-  ensureAlarmExists();
+  await initializeExistingTabs();
+  await ensureAlarmExists();
 });
-
-setInterval(ensureAlarmExists, 4 * 60 * 60 * 1000);
