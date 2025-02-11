@@ -6,6 +6,27 @@ let CHECK_PERIOD = 60; // 默认检查周期（分钟）
 // 添加新的变量来跟踪最近关闭的标签数
 let recentClosedCount = 0;
 
+const operationQueue = [];
+let isProcessing = false;
+
+// 添加操作到队列
+function addToQueue(operation) {
+  operationQueue.push(operation);
+  processQueue();
+}
+
+// 处理队列中的操作
+async function processQueue() {
+  if (isProcessing || operationQueue.length === 0) return;
+  
+  isProcessing = true;
+  while (operationQueue.length > 0) {
+    const operation = operationQueue.shift();
+    await operation();
+  }
+  isProcessing = false;
+}
+
 async function getTabLastAccessed() {
   const savedData = await chrome.storage.local.get('tabLastAccessed');
   const savedTimes = savedData.tabLastAccessed || {};
@@ -85,16 +106,16 @@ async function initializeExistingTabs() {
 }
 
 async function updateTabLastAccessed(tab) {
-  let tabLastAccessed = await getTabLastAccessed();
-  console.log(`updateTabLastAccessed [ID]: ${tab.id} [标题]: ${tab.title} [URL]: ${tab.url
-  } [TOTAL]:  ${Object.keys(tabLastAccessed).length
-  }`);
-  if (isNewTab(tab)) {
-    tabLastAccessed[tab.id] = 0;
-  } else {
-    tabLastAccessed[tab.id] = Date.now();
-  }
-  await saveTabTimes(tabLastAccessed);
+  addToQueue(async () => {
+    let tabLastAccessed = await getTabLastAccessed();
+    console.log(`updateTabLastAccessed [ID]: ${tab.id} [标题]: ${tab.title} [URL]: ${tab.url} [TOTAL]: ${Object.keys(tabLastAccessed).length}`);
+    if (isNewTab(tab)) {
+      tabLastAccessed[tab.id] = 0;
+    } else {
+      tabLastAccessed[tab.id] = Date.now();
+    }
+    await saveTabTimes(tabLastAccessed);
+  });
 }
 
 // 监听标签页被激活的事件
@@ -104,17 +125,26 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 });
 
 // 监听标签页更新的事件
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {
+    console.log(`========== 标签页更新 complete 事件 ========== [${tabId}] ${tab.title}`);
     updateTabLastAccessed(tab);
   }
 });
 
+async function removeTabLastAccessed(tabId) {
+  addToQueue(async () => {
+    let tabLastAccessed = await getTabLastAccessed();
+    console.log(`removeTabLastAccessed [ID]: ${tabId}`);
+    delete tabLastAccessed[tabId];
+    await saveTabTimes(tabLastAccessed);
+  });
+}
+
 // 监听标签页关闭的事件
 chrome.tabs.onRemoved.addListener((tabId) => {
-  let tabLastAccessed = getTabLastAccessed();
-  delete tabLastAccessed[tabId];
-  saveTabTimes(tabLastAccessed);
+  console.log(`========== 标签页关闭事件 ========== [${tabId}]`);
+  removeTabLastAccessed(tabId);
 });
 
 // 检查标签页是否在编辑状态
