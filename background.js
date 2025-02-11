@@ -9,6 +9,9 @@ let recentClosedCount = 0;
 async function getTabLastAccessed() {
   const savedData = await chrome.storage.local.get('tabLastAccessed');
   const savedTimes = savedData.tabLastAccessed || {};
+  if (Object.keys(savedTimes).length === 0) {
+    console.log('tabLastAccessed is empty');
+  } 
   return savedTimes;
 }
 
@@ -83,6 +86,9 @@ async function initializeExistingTabs() {
 
 async function updateTabLastAccessed(tab) {
   let tabLastAccessed = await getTabLastAccessed();
+  console.log(`updateTabLastAccessed [ID]: ${tab.id} [标题]: ${tab.title} [URL]: ${tab.url
+  } [TOTAL]:  ${Object.keys(tabLastAccessed).length
+  }`);
   if (isNewTab(tab)) {
     tabLastAccessed[tab.id] = 0;
   } else {
@@ -385,6 +391,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
 // 保存标签页访问时间
 async function saveTabTimes(tabLastAccessed) {
+  if(Object.keys(tabLastAccessed).length === 0) {
+    console.log('没有需要保存的标签页访问时间，可能有异常不保存');
+    return;
+  }
   await chrome.storage.local.set({ tabLastAccessed });
 }
 

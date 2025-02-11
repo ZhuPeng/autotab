@@ -7,16 +7,14 @@
     "tabs",
     "storage",
     "alarms",
-    "scripting",
-    "action"
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js",
-    "type": "module",
-    "persistent": true
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",
